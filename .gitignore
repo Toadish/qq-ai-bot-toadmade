@@ -1,0 +1,20 @@
+# 密钥与私人数据（绝不提交）
+websocket/.apikey
+personas/
+napcat/
+
+# 运行产物
+__pycache__/
+*.pyc
+*.log
+alarm.log
+ALARM.txt
+napcat_out.log
+brain/mood.json
+brain/stm_state.json
+brain/usage.json
+images/
+
+# 虚拟环境与打包产物
+.venv/
+dist/

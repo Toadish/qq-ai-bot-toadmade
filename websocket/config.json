@@ -1,0 +1,145 @@
+{
+  "_说明": [
+    "接入层运行配置。修改后重启 launcher.py / server.py 生效。",
+    "命令行参数优先级高于本文件（如 launcher.py --config 其他文件）。",
+    "密钥类（如 LLM API Key）不要写进本文件：用环境变量，本文件只记录环境变量名。"
+  ],
+  "server": {
+    "host": "127.0.0.1",
+    "port": 6701
+  },
+  "send_guard": {
+    "_说明": "发送限流（防平台风控）：并发恒为 1；每条消息发完后等待 (base + 字数/chars_per_second) × 随机抖动；超长文本自动截断；连续发送失败指数退避并在达到阈值时告警。pre_delay_min/max 是发送前的随机前摇停顿（模拟真人想一下再回，第一条回复同样生效；想更慢就调大）。",
+    "max_concurrency": 1,
+    "base_delay_seconds": 1.0,
+    "chars_per_second": 20,
+    "max_message_chars": 300,
+    "jitter_min": 0.8,
+    "jitter_max": 1.5,
+    "pre_delay_min_seconds": 2.0,
+    "pre_delay_max_seconds": 4.0,
+    "failure_backoff_base_seconds": 2.0,
+    "failure_backoff_max_seconds": 30.0,
+    "failure_alarm_threshold": 5
+  },
+  "short_term": {
+    "_说明": "短期记忆（滑动窗口+压缩摘要）：最近 N 轮原文，更早滚动压缩成摘要，见 memory/SKILL.md 第八节。",
+    "window_turns": 12,
+    "summary_chunk_turns": 10,
+    "max_level1_summaries": 5,
+    "level2_chunk_summaries": 4,
+    "max_level2_summaries": 3,
+    "summary_max_chars": 300,
+    "context_budget_chars": 4000
+  },
+  "brain": {
+    "_说明": "聊天大脑：是否回复由 LLM 决策；表情包库路径见 paths；会话日志用于下机总结。max_reply_chars 是回复硬上限（LLM 超长会被截断）。collect_received_images 默认关闭（收图暂不可靠，等做 OCR 识图后再重新接线）。group_silence_chance 是群聊沉默因子（角色级参数在人设 meta.json 的 group_silence_chance，LLM 想回群聊时先掷一把，沉默的角色设高）；group_reply_blacklist 是群聊回复黑名单（QQ 号，如群友的机器人，这些人的群消息零 token 跳过）。",
+    "max_reply_chars": 40,
+    "collect_received_images": false,
+    "collect_max_files": 300,
+    "collect_max_file_bytes": 10485760,
+    "emoji_min_interval_messages": 4,
+    "emoji_cooldown_seconds": 30,
+    "emoji_collected_chance": 0.05,
+    "summary_max_chars": 16000,
+    "summary_min_log_bytes": 50,
+    "compress_max_tokens": 400,
+    "group_silence_chance": 0.8,
+    "group_reply_blacklist": []
+  },
+  "requests": {
+    "_说明": "入群/加好友请求处理。mode: off=仅记录不处理 | llm=由角色按人设决策（计入话费，决策失败则暂不处理、请求保持待处理）| approve_all=全部同意 | refuse_all=全部拒绝（附人设拒绝语）。三个开关控制处理哪些类型。",
+    "mode": "llm",
+    "friend": true,
+    "group_add": true,
+    "group_invite": true
+  },
+  "napcat": {
+    "access_token": "",
+    "_说明2": "NapCat 守护参数（launcher.py 的守护模式用，仅跑桥接可忽略）。boot_command 经 bat 包装启动（cmd /c，等效双击 napcat.bat）；shell_dir 相对本配置文件所在目录，请按你的 NapCat 安装位置修改；boot_command 第二项填机器人 QQ 号。",
+    "shell_dir": "..\\napcat\\NapCat.Shell",
+    "boot_command": ["napcat_launcher.bat", ""],
+    "login_timeout_seconds": 120,
+    "restart_backoff_seconds": 5,
+    "max_login_failures": 3,
+    "qr_delay_seconds": 10,
+    "fast_exit_hint_seconds": 10
+  },
+  "paths": {
+    "_说明4": "所有运行路径。相对路径基于本配置文件所在目录；{slug} 替换为当前人设目录名。换机器部署只需改这一节。",
+    "images_dir": "../images",
+    "personas_dir": "../personas",
+    "memory_file": "../personas/{slug}/memory.json",
+    "sessions_dir": "../personas/{slug}/sessions",
+    "usage_file": "../brain/usage.json",
+    "stm_state_file": "../brain/stm_state.json",
+    "mood_file": "../brain/mood.json",
+    "apikey_file": ".apikey",
+    "alarm_log_file": "alarm.log",
+    "alarm_marker_file": "ALARM.txt"
+  },
+  "llm": {
+    "_说明3": "LLM 服务商（OpenAI 兼容接口统一接入）。provider 选预设：deepseek | openai | anthropic | gemini | openrouter | custom（预设的 base_url/model/api_key_env 见 brain/llm.py 的 PROVIDER_PRESETS；下面三个字段留空用预设、填了覆盖）。换模型示例：Claude → provider=anthropic、环境变量 ANTHROPIC_API_KEY；Gemini → provider=gemini、GEMINI_API_KEY；一个 key 用遍所有 → provider=openrouter、OPENROUTER_API_KEY。OpenAI 新推理模型把 max_tokens_param 改成 max_completion_tokens。",
+    "provider": "deepseek",
+    "base_url": "",
+    "model": "",
+    "api_key_env": "",
+    "max_tokens": 1024,
+    "temperature": 0.7,
+    "max_tokens_param": "max_tokens",
+    "timeout_seconds": 60,
+    "daily_budget_tokens": 1000000,
+    "warn_ratio": 0.8
+  },
+  "timesource": {
+    "_说明": "时间源：优先用 NapCat 事件里的消息时间，兜底联网查北京时间（按顺序尝试 endpoints）；生产路径绝不用本地电脑时间，防止改系统时钟刷好感度/每日上限。",
+    "endpoints": [
+      "https://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp",
+      "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai",
+      "http://worldtimeapi.org/api/timezone/Asia/Shanghai"
+    ],
+    "timeout_seconds": 5,
+    "cache_seconds": 300
+  },
+  "mood": {
+    "_说明": "情绪（喜怒哀惧 0~100）分两级：总情绪（心境）与按人分化；LLM 每次决策顺带报 global_mood_delta / mood_delta（限幅 max_delta）。分情绪随时间向 baseline 衰减；总心境在线时受『自然回基线 + 所有人按好感度加权的拉力』驱动、离线时只自然回基线。上机继承：有记录的人继承人物层的长期情绪、无记录的继承总体心境；下机时长期情绪 ← 分情绪（long_term_merge）。calm_factor 角色级参数在人设 meta.json 的 mood_calm_factor。",
+    "decay_per_hour": 5.0,
+    "calm_factor": 1.0,
+    "max_delta": 5.0,
+    "baseline": {
+      "喜": 10,
+      "怒": 5,
+      "哀": 10,
+      "惧": 15
+    },
+    "influence_base_positive": 0.06,
+    "influence_base_negative": 0.05,
+    "favor_scale": 0.08,
+    "favor_clamp": 10.0,
+    "long_term_merge": 0.2,
+    "long_term_decay": 0.05
+  },
+  "proactive": {
+    "_说明": "主动发起话题/说说（事件驱动，见 brain/proactive.py）。无聊事件：喜哀都偏低 + 近 idle_seconds 秒无收发消息 → 冷却 10 分钟 → 掷随机因子 boredom_chance（角色级参数在人设 meta.json，沉默的角色设低）决定是否行动，行动在 群聊/私聊/发朋友圈 随机一项（群聊不带@、私聊选记忆中在意的人）；倾诉事件：任一心境>vent_threshold → 必定行动，私聊/发朋友圈二选一，冷却 3 小时。",
+    "enabled": true,
+    "tick_seconds": 60,
+    "idle_seconds": 300,
+    "boredom_cooldown_seconds": 600,
+    "boredom_chance": 0.15,
+    "boredom_joy_max": 20,
+    "boredom_sorrow_max": 20,
+    "vent_threshold": 60,
+    "vent_cooldown_seconds": 10800,
+    "channel_weights": {
+      "_说明": "渠道抽取权重。候选渠道来自长期记忆的发送通道清单（memory.json 的 channels：同意入群申请/邀请时建群通道、新建在意的人标签时建私聊通道）。",
+      "group": 1.0,
+      "private": 1.5,
+      "qzone": 0.5
+    }
+  },
+  "persona": {
+    "slug": "yotohime",
+    "owner_qq": ""
+  },
+  "log_level": "INFO"
+}
